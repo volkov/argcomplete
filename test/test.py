@@ -74,8 +74,10 @@ class TestArgcomplete(unittest.TestCase):
         with TemporaryFile() as t:
             os.environ["COMP_LINE"] = ensure_bytes(command) if USING_PYTHON2 else command
             os.environ["COMP_POINT"] = point
-            self.assertRaises(SystemExit, completer, parser, output_stream=t,
-                              exit_method=sys.exit, **kwargs)
+            with self.assertRaises(SystemExit) as cm:
+                completer(parser, output_stream=t, exit_method=sys.exit, **kwargs)
+            if cm.exception.code != 0:
+                raise Exception("Unexpected exit code %d" % cm.exception.code)
             t.seek(0)
             return t.read().decode(sys_encoding).split(IFS)
 
@@ -756,6 +758,24 @@ class TestArgcomplete(unittest.TestCase):
         sc = shellcode(["prog"], use_defaults=False, shell="tcsh", complete_arguments=["-o", "nospace"])
         sc = shellcode(["prog"], use_defaults=False, shell="woosh", complete_arguments=["-o", "nospace"])
         sc = shellcode(["prog"], shell="fish")
+
+    def test_option_help(self):
+        os.environ["_ARGCOMPLETE_DFS"] = "\t"
+        os.environ["_ARGCOMPLETE_SUPPRESS_SPACE"] = "1"
+        os.environ["_ARGCOMPLETE_SHELL"] = "fish"
+
+        p = ArgumentParser()
+        p.add_argument("--foo", help="foo" + IFS + "help")
+        p.add_argument("--bar", "--bar2", help="bar help")
+
+        completions = self.run_completer(p, "prog --f")
+        self.assertEqual(set(completions), set(["--foo\tfoo help"]))
+
+        completions = self.run_completer(p, "prog --b")
+        self.assertEqual(set(completions), set(["--bar\tbar help", "--bar2\tbar help"]))
+
+        os.environ["_ARGCOMPLETE_DFS"] = "invalid"
+        self.assertRaises(Exception, self.run_completer, p, "prog --b")
 
 class TestArgcompleteREPL(unittest.TestCase):
     def setUp(self):

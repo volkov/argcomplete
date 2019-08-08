@@ -46,6 +46,7 @@ complete "%(executable)s" 'p@*@`python-argcomplete-tcsh "%(executable)s"`@' ;
 fishcode = r'''
 function __fish_%(executable)s_complete
     set -x _ARGCOMPLETE 1
+    set -x _ARGCOMPLETE_DFS \t
     set -x _ARGCOMPLETE_IFS \n
     set -x _ARGCOMPLETE_SUPPRESS_SPACE 1
     set -x _ARGCOMPLETE_SHELL fish

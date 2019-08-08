@@ -199,6 +199,11 @@ class CompletionFinder(object):
             debug("Invalid value for IFS, quitting [{v}]".format(v=ifs))
             exit_method(1)
 
+        dfs = os.environ.get("_ARGCOMPLETE_DFS")
+        if dfs and len(dfs) != 1:
+            debug("Invalid value for DFS, quitting [{v}]".format(v=dfs))
+            exit_method(1)
+
         comp_line = os.environ["COMP_LINE"]
         comp_point = int(os.environ["COMP_POINT"])
 
@@ -225,6 +230,12 @@ class CompletionFinder(object):
               "\nWORDS:", comp_words)
 
         completions = self._get_completions(comp_words, cword_prefix, cword_prequote, last_wordbreak_pos)
+
+        if dfs:
+            display_completions = {key_part: value.replace(ifs, " ") if value else ""
+                                   for key, value in self.get_display_completions().items()
+                                   for key_part in key.split(" ")}
+            completions = [dfs.join((key, display_completions.get(key) or "")) for key in completions]
 
         debug("\nReturning completions:", completions)
         output_stream.write(ifs.join(completions).encode(sys_encoding))
