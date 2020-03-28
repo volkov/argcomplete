@@ -332,10 +332,18 @@ class CompletionFinder(object):
         return self.active_parsers
 
     def _get_subparser_completions(self, parser, cword_prefix):
+        def filter_aliases(metavar, dest, prefix):
+            if not metavar:
+                return dest if dest and dest.startswith(prefix) else ""
+
+            # metavar combines dest and aliases with ",".
+            a = metavar.replace(" (", ", ").replace(")", "").split(", ")
+            return tuple(x for x in a if x.startswith(prefix))
+
         for action in parser._get_subactions():
-            dest = action.dest
-            if dest and dest.startswith(cword_prefix):
-                self._display_completions[(dest,)] = action.help
+            subcmd_with_aliases = filter_aliases(action.metavar, action.dest, cword_prefix)
+            if subcmd_with_aliases:
+                self._display_completions[subcmd_with_aliases] = action.help
 
         completions = [subcmd for subcmd in parser.choices.keys() if subcmd.startswith(cword_prefix)]
         return completions
